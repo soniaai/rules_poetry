@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "test"
+version = "0.1.0"
+description = ""
+authors = ["Nathan Howell <nathan@sonia.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "^1.17"
+pandas = "^0.25.1"
+
+[tool.poetry.dev-dependencies]
+coverage = "^4.5"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

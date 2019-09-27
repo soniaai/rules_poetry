@@ -1,0 +1,36 @@
+workspace(name = "remarshal")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# Toolchains
+# register_toolchains("//toolchains:homebrew_python_toolchain")
+
+# Pip rules
+http_archive(
+    name = "io_bazel_rules_python",
+    sha256 = "81f55d905069f24a6b71300869c212368eeb83a50fc0c60b56e586ff3b980230",
+    strip_prefix = "rules_python-cf14348593976a5b2875deee16d9b42d52e0f79b",
+    urls = ["https://github.com/soniaai/rules_python/archive/cf14348593976a5b2875deee16d9b42d52e0f79b.tar.gz"],
+)
+
+# Only needed for PIP support, used to build the Poetry extensions
+load("@io_bazel_rules_python//python:pip.bzl", "pip_repositories")
+pip_repositories()
+
+load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
+pip_import(
+    name = "pip",
+    requirements = "@remarshal//:requirements.txt",
+)
+
+load("@pip//:requirements.bzl", "pip_install")
+
+pip_install()
+
+# Subpar rules
+http_archive(
+    name = "subpar",
+    sha256 = "34bb4dadd86bbdd3b5736952167e20a1a4c27ff739de11532c4ef77c7c6a68d9",
+    strip_prefix = "subpar-35bb9f0092f71ea56b742a520602da9b3638a24f",
+    urls = ["https://github.com/google/subpar/archive/35bb9f0092f71ea56b742a520602da9b3638a24f.tar.gz"],
+)
