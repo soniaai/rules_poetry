@@ -103,7 +103,8 @@ pip_install(
 
 py_library(
     name = "{name}_library",
-    srcs = [],
+    srcs = glob(["{pkg}/**/*.py"]),
+    data = glob(["{pkg}/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
     imports = ["{pkg}"],
     deps = {dependencies},
     visibility = ["//visibility:public"],
