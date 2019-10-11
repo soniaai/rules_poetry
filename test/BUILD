@@ -42,7 +42,7 @@ Some packages depend on the PATH environment variable being defined:
 alias(
     name = "wrapt",
     testonly = True,
-    actual = "@test_poetry//:wrapt_library",
+    actual = "@test_poetry//:library_wrapt",
 )
 
 # can't use the py3_image rule until I figure out how to register a CC toolchain that works in Docker

@@ -23,7 +23,7 @@ def _mapping(repository_ctx):
 
     pyproject = json_parse(result.stdout)
     return {
-        dep.lower(): "@%s//:%s_library" % (repository_ctx.name, _clean_name(dep))
+        dep.lower(): "@%s//:library_%s" % (repository_ctx.name, _clean_name(dep))
         for dep in pyproject["tool"]["poetry"]["dependencies"].keys()
     }
 
@@ -88,8 +88,7 @@ def dependency(name):
 
     poetry_template = """
 download_wheel(
-    name = "{name}_wheel",
-    # requirements = ":{name}_requirements",
+    name = "wheel_{name}",
     pkg = "{pkg}",
     version = "{version}",
     hashes = {hashes},
@@ -97,12 +96,12 @@ download_wheel(
 )
 
 pip_install(
-    name = "{name}_install",
-    wheel = ":{name}_wheel",
+    name = "install_{name}",
+    wheel = ":wheel_{name}",
 )
 
 py_library(
-    name = "{name}_library",
+    name = "library_{name}",
     srcs = glob(["{pkg}/**/*.py"]),
     data = glob(["{pkg}/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
     imports = ["{pkg}"],
@@ -122,8 +121,8 @@ load("//:defs.bzl", "pip_install")
             pkg = package.pkg,
             version = package.version,
             hashes = package.hashes,
-            dependencies = [":%s_install" % package.name] +
-                           [":%s_library" % dep for dep in package.dependencies],
+            dependencies = [":install_%s" % package.name] +
+                           [":library_%s" % dep for dep in package.dependencies],
         )
 
     repository_ctx.file("BUILD", build_content)
