@@ -49,6 +49,7 @@ def _download(ctx, requirements):
         inputs = [requirements],
         outputs = [destination],
         arguments = [args],
+        use_default_shell_env = True,  # we need access to PATH
         mnemonic = "DownloadWheel",
         progress_message = "Collecting %s wheel from pypi" % ctx.attr.pkg,
         execution_requirements = {
