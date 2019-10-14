@@ -16,7 +16,7 @@ def _render_requirements(ctx):
     content = "{name}=={version} {hashes}".format(
         name = ctx.attr.pkg,
         version = ctx.attr.version,
-        hashes = " ".join(["--hash=sha256:" + h for h in ctx.attr.hashes]),
+        hashes = " ".join(["--hash=" + h for h in ctx.attr.hashes]),
     )
     ctx.actions.write(
         output = destination,

@@ -48,7 +48,19 @@ def _impl(repository_ctx):
         fail("remarshal failed: %s (%s)" % (result.stdout, result.stderr))
 
     lockfile = json_parse(result.stdout)
-    hashes = lockfile["metadata"]["hashes"]
+    metadata = lockfile["metadata"]
+    if "files" in metadata:  # Poetry 1.x format
+        files = metadata["files"]
+        # only the hashes are needed to build a requirements.txt
+        hashes = {
+            k: [x["hash"] for x in v]
+            for k, v in files.items()
+        }
+    elif "hashes" in metadata:  # Poetry 0.x format
+        hashes = ["sha256:" + h for h in metadata["hashes"]]
+    else:
+        fail("Did not find file hashes in poetry.lock file")
+
     packages = []
     for package in lockfile["package"]:
         name = package["name"]
