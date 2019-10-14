@@ -22,6 +22,17 @@ py_test(
     ],
 )
 
+py_test(
+    name = "test_sys_marker",
+    size = "small",
+    srcs = ["test_sys_marker.py"],
+    python_version = "PY3",
+    deps = [
+        # colorama was added with a sys_platform constraint to only install on sunos4
+        dependency("colorama"),
+    ],
+)
+
 py_binary(
     name = "timezone",
     srcs = ["timezone.py"],

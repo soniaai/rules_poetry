@@ -75,6 +75,7 @@ def _impl(repository_ctx):
             pkg = name,
             version = package["version"],
             hashes = hashes[name],
+            marker = package.get("marker", None),
             dependencies = [
                 _clean_name(name)
                 for name in package.get("dependencies", {}).keys()
@@ -104,6 +105,7 @@ download_wheel(
     pkg = "{pkg}",
     version = "{version}",
     hashes = {hashes},
+    marker = "{marker}",
     visibility = ["//visibility:private"],
 )
 
@@ -133,6 +135,7 @@ load("//:defs.bzl", "pip_install")
             pkg = package.pkg,
             version = package.version,
             hashes = package.hashes,
+            marker = package.marker or "",
             dependencies = [":install_%s" % package.name] +
                            [":library_%s" % dep for dep in package.dependencies],
         )

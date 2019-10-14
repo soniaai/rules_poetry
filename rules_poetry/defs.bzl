@@ -1,6 +1,7 @@
 WheelInfo = provider(fields = [
     "pkg",
     "version",
+    "marker",
 ])
 
 def _py_interpreter(ctx):
@@ -13,10 +14,15 @@ def _py_files(ctx):
 
 def _render_requirements(ctx):
     destination = ctx.actions.declare_file("requirements/%s.txt" % ctx.attr.name)
-    content = "{name}=={version} {hashes}".format(
+    marker = ctx.attr.marker
+    if marker:
+        marker = "; " + marker
+
+    content = "{name}=={version} {hashes} {marker}".format(
         name = ctx.attr.pkg,
         version = ctx.attr.version,
         hashes = " ".join(["--hash=" + h for h in ctx.attr.hashes]),
+        marker = marker,
     )
     ctx.actions.write(
         output = destination,
@@ -74,6 +80,7 @@ def _download_wheel_impl(ctx):
         WheelInfo(
             pkg = ctx.attr.pkg,
             version = ctx.attr.version,
+            marker = ctx.attr.marker,
         ),
     ]
 
@@ -83,6 +90,7 @@ download_wheel = rule(
         "pkg": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "hashes": attr.string_list(mandatory = True, allow_empty = False),
+        "marker": attr.string(mandatory = True),
     },
     toolchains = ["@bazel_tools//tools/python:toolchain_type"],
     fragments = ["py"],
@@ -112,10 +120,12 @@ prefix=
     args = ctx.actions.args()
     args.add(interpreter)
     args.add(installed_wheel.path)
+    args.add(wheel_info.marker)
+    # bazel expands the directory to individual files
     args.add_all(ctx.files.wheel)
 
     ctx.actions.run_shell(
-        command = "$1 -m pip install --force-reinstall --upgrade --no-deps --quiet --disable-pip-version-check --no-cache-dir --target=$2 $3",
+        command = "$1 -m pip install --force-reinstall --upgrade --no-deps --quiet --disable-pip-version-check --no-cache-dir --target=$2 \"$4 ; $3\"",
         # second portion of the .pydistutils.cfg workaround described above
         env = {"HOME": setup_cfg.dirname},
         inputs = ctx.files.wheel + [setup_cfg],

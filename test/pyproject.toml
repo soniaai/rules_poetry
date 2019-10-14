@@ -11,6 +11,7 @@ numpy = "^1.17"
 pandas = "^0.25.1"
 pytz = "^2019.3"
 wrapt = "^1.11"
+colorama = {version = "^0.4.1", platform = "sunos4"}
 
 [tool.poetry.dev-dependencies]
 coverage = "^4.5"
