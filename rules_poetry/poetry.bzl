@@ -1,7 +1,7 @@
 load(":json_parser.bzl", "json_parse")
 
 def _clean_name(name):
-    return name.lower().replace("-", "_dash_").replace(".", "_dot_")
+    return name.lower().replace("-", "_").replace(".", "_")
 
 def _mapping(repository_ctx):
     result = repository_ctx.execute(

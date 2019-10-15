@@ -9,6 +9,7 @@ py_test(
     python_version = "PY3",
     deps = [
         dependency("pandas"),
+        dependency("kfp"),
     ],
 )
 
