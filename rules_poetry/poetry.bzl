@@ -131,13 +131,13 @@ load("//:defs.bzl", "pip_install")
 
     for package in packages:
         build_content += poetry_template.format(
-            name = package.name,
+            name = _clean_name(package.name),
             pkg = package.pkg,
             version = package.version,
             hashes = package.hashes,
             marker = package.marker or "",
-            dependencies = [":install_%s" % package.name] +
-                           [":library_%s" % dep for dep in package.dependencies],
+            dependencies = [":install_%s" % _clean_name(package.name)] +
+                           [":library_%s" % _clean_name(dep) for dep in package.dependencies],
         )
 
     repository_ctx.file("BUILD", build_content)
