@@ -61,9 +61,18 @@ def _impl(repository_ctx):
     else:
         fail("Did not find file hashes in poetry.lock file")
 
+    # using a `dict` since there is no `set` type
+    excludes = {x.lower(): True for x in repository_ctx.attr.excludes}
+    for requested in mapping:
+        if requested.lower() in excludes:
+            fail("pyproject.toml dependency {} is also in the excludes list".format(requested))
+
     packages = []
     for package in lockfile["package"]:
         name = package["name"]
+
+        if name.lower() in excludes:
+            continue
 
         if "source" in package:
             # TODO: figure out how to deal with git and directory refs
@@ -79,8 +88,7 @@ def _impl(repository_ctx):
             dependencies = [
                 _clean_name(name)
                 for name in package.get("dependencies", {}).keys()
-                # TODO: hack... remove enum34
-                if name.lower() not in ["setuptools", "enum34"]
+                if name.lower() not in excludes
             ],
         ))
 
@@ -126,6 +134,7 @@ py_library(
 
     build_content = """
 load("//:defs.bzl", "download_wheel")
+load("//:defs.bzl", "noop")
 load("//:defs.bzl", "pip_install")
 """
 
@@ -140,6 +149,17 @@ load("//:defs.bzl", "pip_install")
                            [":library_%s" % _clean_name(dep) for dep in package.dependencies],
         )
 
+    excludes_template = """
+noop(
+    name = "library_{name}",
+)
+    """
+
+    for package in excludes:
+        build_content += excludes_template.format(
+            name = _clean_name(package),
+        )
+
     repository_ctx.file("BUILD", build_content)
 
 poetry = repository_rule(
@@ -151,6 +171,12 @@ poetry = repository_rule(
         "lockfile": attr.label(
             mandatory = True,
             allow_single_file = True,
+        ),
+        "excludes": attr.string_list(
+            mandatory = False,
+            allow_empty = True,
+            default = [],
+            doc = "List of packages to exclude, useful for skipping invalid dependencies",
         ),
         "_rules": attr.label(
             default = ":defs.bzl",

@@ -49,6 +49,10 @@ poetry(
     name = "test_poetry",
     lockfile = "//test:poetry.lock",
     pyproject = "//test:pyproject.toml",
+    excludes = [
+        "enum34",
+        "setuptools",
+    ],
 )
 
 # Base image for Docker tests

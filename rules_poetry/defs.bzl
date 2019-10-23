@@ -163,3 +163,11 @@ pip_install = rule(
     },
     toolchains = ["@bazel_tools//tools/python:toolchain_type"],
 )
+
+def _noop_impl(ctx):
+    return []
+
+noop = rule(
+    implementation = _noop_impl,
+    doc = "Rule for excluded packages",
+)
