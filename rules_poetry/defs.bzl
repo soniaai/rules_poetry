@@ -1,16 +1,32 @@
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+def poetry_deps():
+    http_archive(
+        name = "pip_archive",
+        sha256 = "21207d76c1031e517668898a6b46a9fb1501c7a4710ef5dfd6a40ad9e6757ea7",
+        strip_prefix = "pip-19.3.1",
+        urls = ["https://files.pythonhosted.org/packages/ce/ea/9b445176a65ae4ba22dce1d93e4b5fe182f953df71a145f557cffaffc1bf/pip-19.3.1.tar.gz"],
+        build_file_content = """
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_binary(
+    name = "pip",
+    main = "src/pip/__main__.py",
+    imports = ["src"],
+    srcs = glob(["src/**/*.py"]),
+    data = glob(["src/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+        """,
+        workspace_file_content = "",
+    )
+
 WheelInfo = provider(fields = [
     "pkg",
     "version",
     "marker",
 ])
-
-def _py_interpreter(ctx):
-    toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
-    return toolchain.py3_runtime.interpreter_path or toolchain.py3_runtime.interpreter
-
-def _py_files(ctx):
-    toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
-    return toolchain.py3_runtime.files or []
 
 def _render_requirements(ctx):
     destination = ctx.actions.declare_file("requirements/%s.txt" % ctx.attr.name)
@@ -33,11 +49,8 @@ def _render_requirements(ctx):
     return destination
 
 def _download(ctx, requirements):
-    interpreter = _py_interpreter(ctx)
     destination = ctx.actions.declare_directory("wheels/%s" % ctx.attr.name)
     args = ctx.actions.args()
-    args.add("-m")
-    args.add("pip")
     args.add("wheel")
     args.add("--quiet")
     args.add("--no-deps")
@@ -51,7 +64,7 @@ def _download(ctx, requirements):
     args.add(requirements)
 
     ctx.actions.run(
-        executable = interpreter,
+        executable = ctx.executable._pip,
         inputs = [requirements],
         outputs = [destination],
         arguments = [args],
@@ -87,20 +100,15 @@ def _download_wheel_impl(ctx):
 download_wheel = rule(
     implementation = _download_wheel_impl,
     attrs = {
+        "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "host"),
         "pkg": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "hashes": attr.string_list(mandatory = True, allow_empty = False),
         "marker": attr.string(mandatory = True),
     },
-    toolchains = ["@bazel_tools//tools/python:toolchain_type"],
-    fragments = ["py"],
-    # TODO(nathan): add python fragment dependency to get current python version
-    # instead of assuming/hardcoding it to python3... but no
-    # nothing on PythonConfiguration is callable from skylark :(
 )
 
 def _install(ctx, wheel_info):
-    interpreter = _py_interpreter(ctx)
     installed_wheel = ctx.actions.declare_directory(wheel_info.pkg)
 
     # work around dumb distutils "feature" that prevents using `pip install --target
@@ -118,14 +126,14 @@ prefix=
     )
 
     args = ctx.actions.args()
-    args.add(interpreter)
+    args.add(ctx.executable._pip)
     args.add(installed_wheel.path)
     args.add(wheel_info.marker)
     # bazel expands the directory to individual files
     args.add_all(ctx.files.wheel)
 
     ctx.actions.run_shell(
-        command = "$1 -m pip install --force-reinstall --upgrade --no-deps --quiet --disable-pip-version-check --no-cache-dir --target=$2 \"$4 ; $3\"",
+        command = "$1 install --force-reinstall --upgrade --no-deps --quiet --disable-pip-version-check --no-cache-dir --target=$2 \"$4 ; $3\"",
         # second portion of the .pydistutils.cfg workaround described above
         env = {"HOME": setup_cfg.dirname},
         inputs = ctx.files.wheel + [setup_cfg],
@@ -133,7 +141,7 @@ prefix=
         progress_message = "Installing %s wheel" % wheel_info.pkg,
         arguments = [args],
         mnemonic = "CopyWheel",
-        tools = depset(direct = [_py_interpreter(ctx)], transitive = _py_files(ctx)),
+        tools = [ctx.executable._pip]
     )
 
     return installed_wheel
@@ -159,9 +167,9 @@ def _pip_install_impl(ctx):
 pip_install = rule(
     implementation = _pip_install_impl,
     attrs = {
+        "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "host"),
         "wheel": attr.label(mandatory = True, providers = [WheelInfo]),
     },
-    toolchains = ["@bazel_tools//tools/python:toolchain_type"],
 )
 
 def _noop_impl(ctx):

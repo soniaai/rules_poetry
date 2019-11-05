@@ -16,6 +16,11 @@ load("@rules_python//python:repositories.bzl", "py_repositories")
 
 py_repositories()
 
+# install pip and setuptools locally
+load("@com_sonia_rules_poetry//rules_poetry:defs.bzl", "poetry_deps")
+
+poetry_deps()
+
 # Docker rules for testing
 
 http_archive(
