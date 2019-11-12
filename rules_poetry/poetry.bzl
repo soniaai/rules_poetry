@@ -116,7 +116,7 @@ download_wheel(
     hashes = {hashes},
     marker = "{marker}",
     visibility = ["//visibility:private"],
-    tags = ["no-cache", "requires-network"],
+    tags = ["no-cache"],
 )
 
 pip_install(
