@@ -116,13 +116,13 @@ download_wheel(
     hashes = {hashes},
     marker = "{marker}",
     visibility = ["//visibility:private"],
-    tags = ["no-cache"],
+    tags = ["no-remote-cache", "requires-network"],
 )
 
 pip_install(
     name = "install_{name}",
     wheel = ":wheel_{name}",
-    tags = ["no-cache"],
+    tags = ["no-remote-cache"],
 )
 
 py_library(
