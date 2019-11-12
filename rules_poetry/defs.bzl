@@ -44,7 +44,7 @@ py_library(
 
     http_archive(
         name = "setuptools_archive",
-        sha256 = "3e8e8505e563631e7cb110d9ad82d135ee866b8146d5efe06e42be07a72db20a",
+        sha256 = "6afa61b391dcd16cb8890ec9f66cc4015a8a31a6e1c2b4e0c464514be1a3d722",
         urls = ["https://files.pythonhosted.org/packages/11/0a/7f13ef5cd932a107cd4c0f3ebc9d831d9b78e1a0e8c98a098ca17b1d7d97/setuptools-41.6.0.zip"],
         build_file_content = """
 load("@rules_python//python:defs.bzl", "py_library")
