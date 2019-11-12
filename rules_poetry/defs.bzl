@@ -15,7 +15,45 @@ py_binary(
     imports = ["src"],
     srcs = glob(["src/**/*.py"]),
     data = glob(["src/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
+    deps = ["@setuptools_archive//:setuptools", "@wheel_archive//:wheel"],
     python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+        """,
+        workspace_file_content = "",
+    )
+
+    http_archive(
+        name = "wheel_archive",
+        sha256 = "10c9da68765315ed98850f8e048347c3eb06dd81822dc2ab1d4fde9dc9702646",
+        strip_prefix = "wheel-0.33.6",
+        urls = ["https://files.pythonhosted.org/packages/59/b0/11710a598e1e148fb7cbf9220fd2a0b82c98e94efbdecb299cb25e7f0b39/wheel-0.33.6.tar.gz"],
+        build_file_content = """
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "wheel",
+    imports = ["src"],
+    srcs = glob(["wheel/**/*.py"]),
+    data = glob(["wheel/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
+    visibility = ["//visibility:public"],
+)
+        """,
+        workspace_file_content = "",
+    )
+
+    http_archive(
+        name = "setuptools_archive",
+        sha256 = "3e8e8505e563631e7cb110d9ad82d135ee866b8146d5efe06e42be07a72db20a",
+        urls = ["https://files.pythonhosted.org/packages/11/0a/7f13ef5cd932a107cd4c0f3ebc9d831d9b78e1a0e8c98a098ca17b1d7d97/setuptools-41.6.0.zip"],
+        build_file_content = """
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "setuptools",
+    imports = ["src"],
+    srcs = glob(["setuptools/**/*.py"]),
+    data = glob(["setuptools/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
     visibility = ["//visibility:public"],
 )
         """,
@@ -129,6 +167,7 @@ prefix=
     args.add(ctx.executable._pip)
     args.add(installed_wheel.path)
     args.add(wheel_info.marker)
+
     # bazel expands the directory to individual files
     args.add_all(ctx.files.wheel)
 
@@ -141,7 +180,7 @@ prefix=
         progress_message = "Installing %s wheel" % wheel_info.pkg,
         arguments = [args],
         mnemonic = "CopyWheel",
-        tools = [ctx.executable._pip]
+        tools = [ctx.executable._pip],
     )
 
     return installed_wheel

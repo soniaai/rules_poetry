@@ -51,6 +51,7 @@ def _impl(repository_ctx):
     metadata = lockfile["metadata"]
     if "files" in metadata:  # Poetry 1.x format
         files = metadata["files"]
+
         # only the hashes are needed to build a requirements.txt
         hashes = {
             k: [x["hash"] for x in v]
