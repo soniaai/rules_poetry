@@ -52,12 +52,12 @@ load("//rules_poetry:poetry.bzl", "poetry")
 
 poetry(
     name = "test_poetry",
-    lockfile = "//test:poetry.lock",
-    pyproject = "//test:pyproject.toml",
     excludes = [
         "enum34",
         "setuptools",
     ],
+    lockfile = "//test:poetry.lock",
+    pyproject = "//test:pyproject.toml",
 )
 
 # Base image for Docker tests

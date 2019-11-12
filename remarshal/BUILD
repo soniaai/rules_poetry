@@ -4,6 +4,7 @@ load("@subpar//:subpar.bzl", "par_binary")
 par_binary(
     name = "remarshal",
     srcs = ["remarshal.py"],
+    visibility = ["//visibility:public"],
     deps = [
         requirement("PyYAML"),
         requirement("python-dateutil"),
@@ -11,5 +12,4 @@ par_binary(
         requirement("remarshal"),
         requirement("six"),
     ],
-    visibility = ["//visibility:public"]
 )
