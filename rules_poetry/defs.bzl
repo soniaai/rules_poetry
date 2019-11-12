@@ -33,7 +33,7 @@ load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
     name = "wheel",
-    imports = ["."],
+    imports = ["wheel"],
     srcs = glob(["wheel/**/*.py"]),
     data = glob(["wheel/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
     visibility = ["//visibility:public"],
@@ -51,7 +51,7 @@ load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
     name = "setuptools",
-    imports = ["."],
+    imports = ["setuptools"],
     srcs = glob(["setuptools/**/*.py"]),
     data = glob(["setuptools/**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
     visibility = ["//visibility:public"],
