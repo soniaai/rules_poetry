@@ -116,13 +116,13 @@ download_wheel(
     hashes = {hashes},
     marker = "{marker}",
     visibility = ["//visibility:private"],
-    tags = ["no-remote-cache", "requires-network"],
+    tags = [{download_tags}, "requires-network"],
 )
 
 pip_install(
     name = "install_{name}",
     wheel = ":wheel_{name}",
-    tags = ["no-remote-cache"],
+    tags = [{install_tags}],
 )
 
 py_library(
@@ -141,6 +141,9 @@ load("//:defs.bzl", "noop")
 load("//:defs.bzl", "pip_install")
 """
 
+    install_tags = ["\"{}\"".format(tag) for tag in repository_ctx.attr.tags]
+    download_tags = install_tags + ["\"requires-network\""]
+
     for package in packages:
         build_content += poetry_template.format(
             name = _clean_name(package.name),
@@ -148,6 +151,8 @@ load("//:defs.bzl", "pip_install")
             version = package.version,
             hashes = package.hashes,
             marker = package.marker or "",
+            install_tags = ", ".join(install_tags),
+            download_tags = ", ".join(download_tags),
             dependencies = [":install_%s" % _clean_name(package.name)] +
                            [":library_%s" % _clean_name(dep) for dep in package.dependencies],
         )

@@ -1,5 +1,15 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+def deterministic_env():
+    return {
+        # lifted from https://github.com/bazelbuild/rules_python/issues/154
+        "CFLAGS": "-g0",  # debug symbols contain non-deterministic file paths
+        "PATH": "/bin:/usr/bin:/usr/local/bin",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONHASHSEED": "0",
+        "SOURCE_DATE_EPOCH": "315532800",  # set wheel timestamps to 1980-01-01T00:00:00Z
+    }
+
 def poetry_deps():
     http_archive(
         name = "pip_archive",
@@ -86,35 +96,41 @@ def _render_requirements(ctx):
 
     return destination
 
+COMMON_ARGS = [
+    "--quiet",
+    "--no-deps",
+    "--disable-pip-version-check",
+    "--no-cache-dir",
+    "--isolated",
+]
+
 def _download(ctx, requirements):
     destination = ctx.actions.declare_directory("wheels/%s" % ctx.attr.name)
+    toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
+    runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
+    interp = runtime.interpreter_path or runtime.interpreter # mind boggles
     args = ctx.actions.args()
+    args.add(ctx.executable._pip.path)
     args.add("wheel")
-    args.add("--quiet")
-    args.add("--no-deps")
+    args.add_all(COMMON_ARGS)
     args.add("--require-hashes")
-    args.add("--disable-pip-version-check")
-    args.add("--no-cache-dir")
-    args.add("--isolated")
     args.add("--wheel-dir")
     args.add(destination.path)
     args.add("-r")
     args.add(requirements)
 
     ctx.actions.run(
-        executable = ctx.executable._pip,
-        inputs = [requirements],
+        executable = interp.path,
+        inputs = depset([requirements], transitive = [runtime.files]),
         outputs = [destination],
         arguments = [args],
-        env = {
-            "PATH": "/bin:/usr/bin:/usr/local/bin",
-            "SOURCE_DATE_EPOCH": "315532800",  # set wheel timestamps to 1980-01-01T00:00:00Z
-        },
+        env = deterministic_env(),
         mnemonic = "DownloadWheel",
         progress_message = "Collecting %s wheel from pypi" % ctx.attr.pkg,
         execution_requirements = {
             "requires-network": "",
         },
+        tools = depset(direct = [interp, ctx.executable._pip], transitive = [runtime.files]),
     )
 
     return destination
@@ -147,6 +163,7 @@ download_wheel = rule(
         "hashes": attr.string_list(mandatory = True, allow_empty = False),
         "marker": attr.string(mandatory = True),
     },
+    toolchains = ["@bazel_tools//tools/python:toolchain_type"],
 )
 
 def _install(ctx, wheel_info):
@@ -166,8 +183,14 @@ prefix=
 """,
     )
 
+    toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
+    runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
+    interp = runtime.interpreter_path or runtime.interpreter # mind boggles
+
     args = ctx.actions.args()
+    args.add(interp.path)
     args.add(ctx.executable._pip)
+    args.add(" ".join(COMMON_ARGS))
     args.add(installed_wheel.path)
     args.add(wheel_info.marker)
 
@@ -175,15 +198,15 @@ prefix=
     args.add_all(ctx.files.wheel)
 
     ctx.actions.run_shell(
-        command = "$1 install --force-reinstall --upgrade --no-deps --quiet --disable-pip-version-check --no-cache-dir --target=$2 \"$4 ; $3\"",
+        command = "$1 $2 install --force-reinstall --upgrade $3 --no-compile --target=$4 \"$6 ; $5\"",
         # second portion of the .pydistutils.cfg workaround described above
-        env = {"HOME": setup_cfg.dirname},
+        env = dict(deterministic_env().items() + [("HOME", setup_cfg.dirname)]),
         inputs = ctx.files.wheel + [setup_cfg],
         outputs = [installed_wheel],
         progress_message = "Installing %s wheel" % wheel_info.pkg,
         arguments = [args],
         mnemonic = "CopyWheel",
-        tools = [ctx.executable._pip],
+        tools = depset(direct = [interp, ctx.executable._pip], transitive = [runtime.files]),
     )
 
     return installed_wheel
@@ -212,6 +235,7 @@ pip_install = rule(
         "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "host"),
         "wheel": attr.label(mandatory = True, providers = [WheelInfo]),
     },
+    toolchains = ["@bazel_tools//tools/python:toolchain_type"],
 )
 
 def _noop_impl(ctx):
