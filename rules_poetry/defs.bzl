@@ -106,7 +106,10 @@ def _download(ctx, requirements):
         inputs = [requirements],
         outputs = [destination],
         arguments = [args],
-        use_default_shell_env = True,  # we need access to PATH
+        env = {
+            "PATH": "/bin:/usr/bin:/usr/local/bin",
+            "SOURCE_DATE_EPOCH": "315532800",  # set wheel timestamps to 1980-01-01T00:00:00Z
+        },
         mnemonic = "DownloadWheel",
         progress_message = "Collecting %s wheel from pypi" % ctx.attr.pkg,
         execution_requirements = {
