@@ -108,9 +108,14 @@ def _download(ctx, requirements):
     destination = ctx.actions.declare_directory("wheels/%s" % ctx.attr.name)
     toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
     runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
-    interp = runtime.interpreter_path or runtime.interpreter # mind boggles
+    interp = runtime.interpreter_path or runtime.interpreter  # mind boggles
+    executable = interp.path
+    pip_path = ctx.executable._pip.path
     args = ctx.actions.args()
-    args.add(ctx.executable._pip.path)
+    if pip_path.endswith(".exe"):
+        executable = pip_path
+    else:
+        args.add(pip_path)
     args.add("wheel")
     args.add_all(COMMON_ARGS)
     args.add("--require-hashes")
@@ -120,7 +125,7 @@ def _download(ctx, requirements):
     args.add(requirements)
 
     ctx.actions.run(
-        executable = interp.path,
+        executable = executable,
         inputs = depset([requirements], transitive = [runtime.files]),
         outputs = [destination],
         arguments = [args],
@@ -185,11 +190,14 @@ prefix=
 
     toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
     runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
-    interp = runtime.interpreter_path or runtime.interpreter # mind boggles
+    interp = runtime.interpreter_path or runtime.interpreter  # mind boggles
+
+    executable = [ctx.executable._pip.path]
+    if not ctx.executable._pip.path.endswith(".exe"):
+        executable.insert(0, interp.path)
 
     args = ctx.actions.args()
-    args.add(interp.path)
-    args.add(ctx.executable._pip)
+    args.add(" ".join(executable))
     args.add(" ".join(COMMON_ARGS))
     args.add(installed_wheel.path)
     args.add(wheel_info.marker)
@@ -198,7 +206,7 @@ prefix=
     args.add_all(ctx.files.wheel)
 
     ctx.actions.run_shell(
-        command = "$1 $2 install --force-reinstall --upgrade $3 --no-compile --target=$4 \"$6 ; $5\"",
+        command = "$1 install --force-reinstall --upgrade $2 --no-compile --target=$3 \"$5 ; $4\"",
         # second portion of the .pydistutils.cfg workaround described above
         env = dict(deterministic_env().items() + [("HOME", setup_cfg.dirname)]),
         inputs = ctx.files.wheel + [setup_cfg],
