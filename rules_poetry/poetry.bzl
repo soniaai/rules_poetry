@@ -6,6 +6,7 @@ def _clean_name(name):
 def _mapping(repository_ctx):
     result = repository_ctx.execute(
         [
+            repository_ctx.attr.python_interpreter,
             repository_ctx.path(repository_ctx.attr._script),
             "-i",
             repository_ctx.path(repository_ctx.attr.pyproject),
@@ -32,6 +33,7 @@ def _impl(repository_ctx):
 
     result = repository_ctx.execute(
         [
+            repository_ctx.attr.python_interpreter,
             repository_ctx.path(repository_ctx.attr._script),
             "-i",
             repository_ctx.path(repository_ctx.attr.lockfile),
@@ -185,6 +187,11 @@ poetry = repository_rule(
             allow_empty = True,
             default = [],
             doc = "List of packages to exclude, useful for skipping invalid dependencies",
+        ),
+        "python_interpreter": attr.string(
+            mandatory = False,
+            default = "python3",
+            doc = "The command to run the Python interpreter used during repository setup",
         ),
         "_rules": attr.label(
             default = ":defs.bzl",
