@@ -108,8 +108,20 @@ def _download(ctx, requirements):
     destination = ctx.actions.declare_directory("wheels/%s" % ctx.attr.name)
     toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
     runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
-    interp = runtime.interpreter_path or runtime.interpreter  # mind boggles
-    executable = interp.path
+
+    # The Python interpreter can be either provided through a path
+    # (platform runtime), or through a label (in-build runtime).
+    # See https://docs.bazel.build/versions/master/be/python.html#py_runtime
+    if runtime.interpreter_path != None:
+        executable = runtime.interpreter_path
+        inputs = depset([requirements])
+        tools = depset(direct = [ctx.executable._pip])
+    else:
+        executable = runtime.interpreter.path
+        inputs = depset([requirements], transitive = [runtime.files])
+        tools = depset(direct = [runtime.interpreter,
+                                 ctx.executable._pip], transitive = [runtime.files])
+
     pip_path = ctx.executable._pip.path
     args = ctx.actions.args()
     if pip_path.endswith(".exe"):
@@ -126,7 +138,7 @@ def _download(ctx, requirements):
 
     ctx.actions.run(
         executable = executable,
-        inputs = depset([requirements], transitive = [runtime.files]),
+        inputs = inputs,
         outputs = [destination],
         arguments = [args],
         env = deterministic_env(),
@@ -135,7 +147,7 @@ def _download(ctx, requirements):
         execution_requirements = {
             "requires-network": "",
         },
-        tools = depset(direct = [interp, ctx.executable._pip], transitive = [runtime.files]),
+        tools = tools,
     )
 
     return destination
@@ -190,11 +202,21 @@ prefix=
 
     toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
     runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
-    interp = runtime.interpreter_path or runtime.interpreter  # mind boggles
+
+    # The Python interpreter can be either provided through a path
+    # (platform runtime), or through a label (in-build runtime).
+    # See https://docs.bazel.build/versions/master/be/python.html#py_runtime
+    if runtime.interpreter_path != None:
+        interpreter_path = runtime.interpreter_path
+        tools = depset(direct = [ctx.executable._pip])
+    else:
+        interpreter_path = runtime.interpreter.path
+        tools = depset(direct = [runtime.interpreter,
+                                 ctx.executable._pip], transitive = [runtime.files])
 
     executable = [ctx.executable._pip.path]
     if not ctx.executable._pip.path.endswith(".exe"):
-        executable.insert(0, interp.path)
+        executable.insert(0, interpreter_path)
 
     args = ctx.actions.args()
     args.add(" ".join(executable))
@@ -214,7 +236,7 @@ prefix=
         progress_message = "Installing %s wheel" % wheel_info.pkg,
         arguments = [args],
         mnemonic = "CopyWheel",
-        tools = depset(direct = [interp, ctx.executable._pip], transitive = [runtime.files]),
+        tools = tools,
     )
 
     return installed_wheel
