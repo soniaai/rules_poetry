@@ -1,5 +1,11 @@
 load(":json_parser.bzl", "json_parse")
 
+# Because Poetry doesn't add several packages in the poetry.lock file,
+# they are excluded from the list of packages.
+# See https://github.com/python-poetry/poetry/blob/d2fd581c9a856a5c4e60a25acb95d06d2a963cf2/poetry/puzzle/provider.py#L55
+# and https://github.com/python-poetry/poetry/issues/1584
+POETRY_UNSAFE_PACKAGES = ["setuptools", "distribute", "pip", "wheel"]
+
 def _clean_name(name):
     return name.lower().replace("-", "_").replace(".", "_")
 
@@ -65,7 +71,7 @@ def _impl(repository_ctx):
         fail("Did not find file hashes in poetry.lock file")
 
     # using a `dict` since there is no `set` type
-    excludes = {x.lower(): True for x in repository_ctx.attr.excludes}
+    excludes = {x.lower(): True for x in repository_ctx.attr.excludes + POETRY_UNSAFE_PACKAGES}
     for requested in mapping:
         if requested.lower() in excludes:
             fail("pyproject.toml dependency {} is also in the excludes list".format(requested))
