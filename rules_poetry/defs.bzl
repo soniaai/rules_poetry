@@ -135,6 +135,9 @@ def _download(ctx, requirements):
     args.add(destination.path)
     args.add("-r")
     args.add(requirements)
+    if ctx.attr.source_url != "":
+        args.add("-i")
+        args.add(ctx.attr.source_url)
 
     ctx.actions.run(
         executable = executable,
@@ -179,6 +182,7 @@ download_wheel = rule(
         "version": attr.string(mandatory = True),
         "hashes": attr.string_list(mandatory = True, allow_empty = False),
         "marker": attr.string(mandatory = True),
+        "source_url": attr.string(mandatory = True)
     },
     toolchains = ["@bazel_tools//tools/python:toolchain_type"],
 )
