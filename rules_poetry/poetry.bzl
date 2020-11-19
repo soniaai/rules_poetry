@@ -83,7 +83,7 @@ def _impl(repository_ctx):
         if name.lower() in excludes:
             continue
 
-        if "source" in package:
+        if "source" in package and package["source"]["type"] != "legacy":
             # TODO: figure out how to deal with git and directory refs
             print("Skipping " + name)
             continue
@@ -94,6 +94,7 @@ def _impl(repository_ctx):
             version = package["version"],
             hashes = hashes[name],
             marker = package.get("marker", None),
+            source_url = package.get("source", {}).get("url", None),
             dependencies = [
                 _clean_name(name)
                 for name in package.get("dependencies", {}).keys()
@@ -123,6 +124,7 @@ download_wheel(
     version = "{version}",
     hashes = {hashes},
     marker = "{marker}",
+    source_url = "{source_url}",
     visibility = ["//visibility:private"],
     tags = [{download_tags}, "requires-network"],
 )
@@ -159,6 +161,7 @@ load("//:defs.bzl", "pip_install")
             version = package.version,
             hashes = package.hashes,
             marker = package.marker or "",
+            source_url = package.source_url or "",
             install_tags = ", ".join(install_tags),
             download_tags = ", ".join(download_tags),
             dependencies = [":install_%s" % _clean_name(package.name)] +
