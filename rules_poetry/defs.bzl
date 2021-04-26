@@ -13,9 +13,9 @@ def deterministic_env():
 def poetry_deps():
     http_archive(
         name = "pip_archive",
-        sha256 = "21207d76c1031e517668898a6b46a9fb1501c7a4710ef5dfd6a40ad9e6757ea7",
-        strip_prefix = "pip-19.3.1",
-        urls = ["https://files.pythonhosted.org/packages/ce/ea/9b445176a65ae4ba22dce1d93e4b5fe182f953df71a145f557cffaffc1bf/pip-19.3.1.tar.gz"],
+        sha256 = "a810bf07c3723a28621c29abe8e34429fa082c337f89aea9a795865416b66d3e",
+        strip_prefix = "pip-21.1",
+        urls = ["https://files.pythonhosted.org/packages/de/62/77b8b1a9f9c710988e5a58c22a7cd025b63b204df57a6ea939d6d39da421/pip-21.1.tar.gz"],
         build_file_content = """
 load("@rules_python//python:defs.bzl", "py_binary")
 
