@@ -35,9 +35,8 @@ py_binary(
 
     http_archive(
         name = "wheel_archive",
-        sha256 = "10c9da68765315ed98850f8e048347c3eb06dd81822dc2ab1d4fde9dc9702646",
-        strip_prefix = "wheel-0.33.6",
-        urls = ["https://files.pythonhosted.org/packages/59/b0/11710a598e1e148fb7cbf9220fd2a0b82c98e94efbdecb299cb25e7f0b39/wheel-0.33.6.tar.gz"],
+        sha256 = "78b5b185f0e5763c26ca1e324373aadd49182ca90e825f7853f4b2509215dc0e",
+        urls = ["https://files.pythonhosted.org/packages/65/63/39d04c74222770ed1589c0eaba06c05891801219272420b40311cd60c880/wheel-0.36.2-py2.py3-none-any.whl"],
         build_file_content = """
 load("@rules_python//python:defs.bzl", "py_library")
 
@@ -49,6 +48,7 @@ py_library(
     visibility = ["//visibility:public"],
 )
         """,
+        type = "zip",
         workspace_file_content = "",
     )
 
