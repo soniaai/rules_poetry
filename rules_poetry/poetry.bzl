@@ -1,5 +1,3 @@
-load(":json_parser.bzl", "json_parse")
-
 # Because Poetry doesn't add several packages in the poetry.lock file,
 # they are excluded from the list of packages.
 # See https://github.com/python-poetry/poetry/blob/d2fd581c9a856a5c4e60a25acb95d06d2a963cf2/poetry/puzzle/provider.py#L55
@@ -28,7 +26,8 @@ def _mapping(repository_ctx):
     if result.return_code:
         fail("remarshal failed: %s (%s)" % (result.stdout, result.stderr))
 
-    pyproject = json_parse(result.stdout)
+    pyproject = json.decode(result.stdout)
+
     return {
         dep.lower(): "@%s//:library_%s" % (repository_ctx.name, _clean_name(dep))
         for dep in pyproject["tool"]["poetry"]["dependencies"].keys()
@@ -55,7 +54,7 @@ def _impl(repository_ctx):
     if result.return_code:
         fail("remarshal failed: %s (%s)" % (result.stdout, result.stderr))
 
-    lockfile = json_parse(result.stdout)
+    lockfile = json.decode(result.stdout)
     metadata = lockfile["metadata"]
     if "files" in metadata:  # Poetry 1.x format
         files = metadata["files"]
@@ -155,12 +154,19 @@ load("//:defs.bzl", "pip_install")
     download_tags = install_tags + ["\"requires-network\""]
 
     for package in packages:
+        # Bazel's built-in json decoder removes string escapes, so we need to
+        # make sure that " characters are replaced with ' if they're wrapped
+        # in quotes in the template
+        if package.marker:
+            marker = package.marker.replace('"', "'")
+        else:
+            marker = ""
         build_content += poetry_template.format(
             name = _clean_name(package.name),
             pkg = package.pkg,
             version = package.version,
             hashes = package.hashes,
-            marker = package.marker or "",
+            marker = marker,
             source_url = package.source_url or "",
             install_tags = ", ".join(install_tags),
             download_tags = ", ".join(download_tags),
