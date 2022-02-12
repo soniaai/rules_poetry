@@ -99,6 +99,7 @@ def _render_requirements(ctx):
 COMMON_ARGS = [
     "--quiet",
     "--no-deps",
+    "--use-pep517",
     "--disable-pip-version-check",
     "--no-cache-dir",
     "--isolated",
