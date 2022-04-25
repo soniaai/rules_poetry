@@ -83,7 +83,7 @@ implementation nor in capability. A feature summary is listed below:
 | Transitive | *yes* | no |
 | Isolation | *yes* | no |
 | Hash Validation | *yes* | depends |
-| Deterministic | *mostly* | sometimes |
+| Deterministic | yes | yes |
 | Crosstool | no | no |
 
 ----

@@ -1,5 +1,6 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# We no longer need to use this due to updates to rules_python, but we have not erased it for backward compatibility.
 def deterministic_env():
     return {
         # lifted from https://github.com/bazelbuild/rules_python/issues/154
