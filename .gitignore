@@ -1,3 +1,5 @@
 .venv/
 bazel-*
 .ijwb/
+.bazelrc
+__pycache__

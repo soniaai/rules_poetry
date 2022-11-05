@@ -6,28 +6,52 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "rules_python",
-    sha256 = "cdf6b84084aad8f10bf20b46b77cb48d83c319ebe6458a18e9d2cebf57807cdd",
-    strip_prefix = "rules_python-0.8.1",
-    url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/0.8.1.tar.gz",
+    sha256 = "8c8fe44ef0a9afc256d1e75ad5f448bb59b81aba149b8958f02f7b3a98f5d9b4",
+    strip_prefix = "rules_python-0.13.0",
+    url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/0.13.0.tar.gz",
 )
 
-# This call should always be present.
-load("@rules_python//python:repositories.bzl", "py_repositories")
+load("@rules_python//python:repositories.bzl", "python_register_toolchains")
 
-py_repositories()
+python_register_toolchains(
+    name = "rules_poetry_python3_10",
+    python_version = "3.10",
+)
+
+load("@rules_poetry_python3_10//:defs.bzl", python_interpreter = "interpreter")
 
 # install pip and setuptools locally
 load("@com_sonia_rules_poetry//rules_poetry:defs.bzl", "poetry_deps")
 
 poetry_deps()
 
+
+
+# Go rules to make the Docker rules work
+
+http_archive(
+  name = "io_bazel_rules_go",
+  sha256 = "099a9fb96a376ccbbb7d291ed4ecbdfd42f6bc822ab77ae6f1b5cb9e914e94fa",
+  urls = [
+    "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
+    "https://github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
+  ],
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
+go_rules_dependencies()
+
+go_register_toolchains(version = "1.19.1")
+
+
+
 # Docker rules for testing
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "413bb1ec0895a8d3249a01edf24b82fd06af3c8633c9fb833a0cb1d4b234d46d",
-    strip_prefix = "rules_docker-0.12.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.12.0/rules_docker-v0.12.0.tar.gz"],
+    sha256 = "b1e80761a8a8243d03ebca8845e9cc1ba6c82ce7c5179ce2b295cd36f7e394bf",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.25.0/rules_docker-v0.25.0.tar.gz"],
 )
 
 load(
@@ -41,11 +65,15 @@ load("@io_bazel_rules_docker//repositories:deps.bzl", _container_deps = "deps")
 
 _container_deps()
 
+
+
 # Split remarshal out, most consumers will not need it
 local_repository(
     name = "remarshal",
     path = "remarshal",
 )
+
+
 
 # Poetry rules
 load("//rules_poetry:poetry.bzl", "poetry")
@@ -58,7 +86,10 @@ poetry(
     ],
     lockfile = "//test:poetry.lock",
     pyproject = "//test:pyproject.toml",
+    python_interpreter_target = python_interpreter,
 )
+
+
 
 # Base image for Docker tests
 load(

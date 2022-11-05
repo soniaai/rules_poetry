@@ -1,3 +1,5 @@
+"Poetry utility functions"
+
 # Because Poetry doesn't add several packages in the poetry.lock file,
 # they are excluded from the list of packages.
 # See https://github.com/python-poetry/poetry/blob/d2fd581c9a856a5c4e60a25acb95d06d2a963cf2/poetry/puzzle/provider.py#L55
@@ -7,10 +9,40 @@ POETRY_UNSAFE_PACKAGES = ["setuptools", "distribute", "pip", "wheel"]
 def _clean_name(name):
     return name.lower().replace("-", "_").replace(".", "_")
 
+def _get_python_interpreter_attr(rctx):
+    if rctx.attr.python_interpreter:
+        return rctx.attr.python_interpreter
+
+    if "win" in rctx.os.name:
+        return "python.exe"
+    else:
+        return "python3"
+
+def _resolve_python_interpreter(rctx):
+    python_interpreter = _get_python_interpreter_attr(rctx)
+
+    if rctx.attr.python_interpreter_target:
+        if rctx.attr.python_interpreter:
+            fail("python_interpreter_target and python_interpreter incompatible")
+
+        target = rctx.attr.python_interpreter_target
+        python_interpreter = rctx.path(target)
+
+        return python_interpreter
+
+    if "/" not in python_interpreter:
+        python_interpreter = rctx.which(python_interpreter)
+
+    if not python_interpreter:
+        fail("python interpreter `{}` not found in PATH".format(python_interpreter))
+
+    return python_interpreter
+
 def _mapping(repository_ctx):
+    python_interpreter = _resolve_python_interpreter(repository_ctx)
     result = repository_ctx.execute(
         [
-            repository_ctx.attr.python_interpreter,
+            python_interpreter,
             repository_ctx.path(repository_ctx.attr._script),
             "-i",
             repository_ctx.path(repository_ctx.attr.pyproject),
@@ -34,11 +66,12 @@ def _mapping(repository_ctx):
     }
 
 def _impl(repository_ctx):
+    python_interpreter = _resolve_python_interpreter(repository_ctx)
     mapping = _mapping(repository_ctx)
 
     result = repository_ctx.execute(
         [
-            repository_ctx.attr.python_interpreter,
+            python_interpreter,
             repository_ctx.path(repository_ctx.attr._script),
             "-i",
             repository_ctx.path(repository_ctx.attr.lockfile),
@@ -205,8 +238,11 @@ poetry = repository_rule(
         ),
         "python_interpreter": attr.string(
             mandatory = False,
-            default = "python3",
             doc = "The command to run the Python interpreter used during repository setup",
+        ),
+        "python_interpreter_target": attr.label(
+            mandatory = False,
+            doc = "The target of the Python interpreter used during repository setup",
         ),
         "_rules": attr.label(
             default = ":defs.bzl",
@@ -214,7 +250,7 @@ poetry = repository_rule(
         "_script": attr.label(
             executable = True,
             default = "//tools:remarshal.par",
-            cfg = "host",
+            cfg = "exec",
         ),
     },
     implementation = _impl,

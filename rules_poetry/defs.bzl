@@ -1,3 +1,5 @@
+"Poetry rule definitions"
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # We no longer need to use this due to updates to rules_python, but we have not erased it for backward compatibility.
@@ -14,9 +16,9 @@ def deterministic_env():
 def poetry_deps():
     http_archive(
         name = "pip_archive",
-        sha256 = "a810bf07c3723a28621c29abe8e34429fa082c337f89aea9a795865416b66d3e",
-        strip_prefix = "pip-21.1",
-        urls = ["https://files.pythonhosted.org/packages/de/62/77b8b1a9f9c710988e5a58c22a7cd025b63b204df57a6ea939d6d39da421/pip-21.1.tar.gz"],
+        sha256 = "8182aec21dad6c0a49a2a3d121a87cd524b950e0b6092b181625f07ebdde7530",
+        strip_prefix = "pip-22.3",
+        urls = ["https://files.pythonhosted.org/packages/f8/08/7f92782ff571c7c7cb6c5eeb8ebbb1f68cb02bdb24e55c5de4dd9ce98bc3/pip-22.3.tar.gz"],
         build_file_content = """
 load("@rules_python//python:defs.bzl", "py_binary")
 
@@ -36,8 +38,8 @@ py_binary(
 
     http_archive(
         name = "wheel_archive",
-        sha256 = "78b5b185f0e5763c26ca1e324373aadd49182ca90e825f7853f4b2509215dc0e",
-        urls = ["https://files.pythonhosted.org/packages/65/63/39d04c74222770ed1589c0eaba06c05891801219272420b40311cd60c880/wheel-0.36.2-py2.py3-none-any.whl"],
+        sha256 = "7a5a3095dceca97a3cac869b8fef4e89b83fafde21b6688f47b6fda7600eb441",
+        urls = ["https://files.pythonhosted.org/packages/46/3a/73fcaf6487aa9a9b02ee9df30a24bdc2c1f0292fe559811936d67a9053c1/wheel-0.38.2-py3-none-any.whl"],
         build_file_content = """
 load("@rules_python//python:defs.bzl", "py_library")
 
@@ -109,7 +111,7 @@ COMMON_ARGS = [
 def _download(ctx, requirements):
     destination = ctx.actions.declare_directory("wheels/%s" % ctx.attr.name)
     toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
-    runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
+    runtime = toolchain.py3_runtime
 
     # The Python interpreter can be either provided through a path
     # (platform runtime), or through a label (in-build runtime).
@@ -179,7 +181,7 @@ def _download_wheel_impl(ctx):
 download_wheel = rule(
     implementation = _download_wheel_impl,
     attrs = {
-        "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "host"),
+        "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "exec"),
         "pkg": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "hashes": attr.string_list(mandatory = True, allow_empty = False),
@@ -207,7 +209,7 @@ prefix=
     )
 
     toolchain = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"]
-    runtime = ctx.toolchains["@bazel_tools//tools/python:toolchain_type"].py3_runtime
+    runtime = toolchain.py3_runtime
 
     # The Python interpreter can be either provided through a path
     # (platform runtime), or through a label (in-build runtime).
@@ -268,7 +270,7 @@ def _pip_install_impl(ctx):
 pip_install = rule(
     implementation = _pip_install_impl,
     attrs = {
-        "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "host"),
+        "_pip": attr.label(default = "@pip_archive//:pip", executable = True, cfg = "exec"),
         "wheel": attr.label(mandatory = True, providers = [WheelInfo]),
     },
     toolchains = ["@bazel_tools//tools/python:toolchain_type"],
