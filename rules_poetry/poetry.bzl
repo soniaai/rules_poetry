@@ -60,9 +60,24 @@ def _mapping(repository_ctx):
 
     pyproject = json.decode(result.stdout)
 
+    def unpack_dependencies(x):
+        return {
+            dep.lower(): "@%s//:library_%s" % (repository_ctx.name, _clean_name(dep))
+            for dep in x.keys()
+        }
+
+    dependencies = unpack_dependencies(pyproject["tool"]["poetry"]["dependencies"])
+
+    groups = {}
+
+    for k, v in pyproject["tool"]["poetry"]["group"].items():
+        groups.update({
+            k: unpack_dependencies(v["dependencies"])
+        })
+
     return {
-        dep.lower(): "@%s//:library_%s" % (repository_ctx.name, _clean_name(dep))
-        for dep in pyproject["tool"]["poetry"]["dependencies"].keys()
+        "dependencies": dependencies,
+        "groups": groups,
     }
 
 def _impl(repository_ctx):
@@ -139,11 +154,24 @@ def _impl(repository_ctx):
         """
 _mapping = {mapping}
 
-def dependency(name):
-    if name not in _mapping:
+def dependency(name, group = None):
+    if group:
+        if group not in _mapping["groups"]:
+            fail("%s is not a group in pyproject.toml" % name)
+
+        dependencies = _mapping["groups"][group]
+
+        if name not in dependencies:
+            fail("%s is not present in group %s in pyproject.toml" % (name, group))
+
+        return dependencies[name]
+
+    dependencies = _mapping["dependencies"]
+
+    if name not in dependencies:
         fail("%s is not present in pyproject.toml" % name)
 
-    return _mapping[name]
+    return dependencies[name]
 """.format(mapping = mapping),
     )
 
