@@ -1,0 +1,26 @@
+name: Main
+
+on: [ push, pull_request ]
+
+jobs:
+  main:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ macos-11, ubuntu-22.04 ]
+        bazel-version: [ 5.3.1 ]
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Build and test
+        env:
+          USE_BAZEL_VERSION: ${{ matrix.bazel-version }}
+        run: |
+          rm -f .bazelversion
+          cp .bazelrc.github .bazelrc
+          bazel build //...
+          bazel build //test:timezone.image.tar
+          bazel test //...

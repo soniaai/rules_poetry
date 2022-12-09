@@ -6,12 +6,12 @@ authors = ["Nathan Howell <nathan@sonia.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.10"
 colorama = {version = "^0.4.1", platform = "sunos4"}
 kfp = "^0.1.31"
 numpy = "^1.17"
-pandas = "^0.25.1"
-pytz = "^2019.3"
+pandas = "^1.5.1"
+pytz = "^2022"
 requests-toolbelt = "^0.9.1"
 wrapt = "^1.11"
 
