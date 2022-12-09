@@ -579,7 +579,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "cead59d4fea56c6c91f263d420e6b44e97d623b52b950acaf994bf39452d7fc5"
+content-hash = "0f63079193a1470b0b836e8956b044c9db27effaa295db94328f32a545721ffe"
 
 [metadata.files]
 argo-models = [
