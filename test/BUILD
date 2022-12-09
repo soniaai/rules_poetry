@@ -36,6 +36,16 @@ py_test(
     tags = ["manual"],
 )
 
+py_test(
+    name = "test_dep_group",
+    size = "small",
+    srcs = ["test_dep_group.py"],
+    python_version = "PY3",
+    deps = [
+        dependency("cowsay", group = "custom"),
+    ],
+)
+
 py_binary(
     name = "timezone",
     srcs = ["timezone.py"],
