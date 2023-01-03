@@ -71,7 +71,7 @@ def _mapping(repository_ctx):
     groups = {}
 
     
-    for k, v in pyproject["tool"]["poetry"].get("group", {}),.items():
+    for k, v in pyproject["tool"]["poetry"].get("group", {}).items():
         groups.update({
             k: unpack_dependencies(v["dependencies"])
         })
