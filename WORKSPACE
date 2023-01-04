@@ -89,6 +89,17 @@ poetry(
     python_interpreter_target = python_interpreter,
 )
 
+poetry(
+    name = "test_poetry_no_groups",
+    excludes = [
+        "enum34",
+        "setuptools",
+    ],
+    lockfile = "//test/no_group_deps:poetry.lock",
+    pyproject = "//test/no_group_deps:pyproject.toml",
+    python_interpreter_target = python_interpreter,
+)
+
 
 
 # Base image for Docker tests
