@@ -115,6 +115,11 @@ def _impl(repository_ctx):
         }
     elif "hashes" in metadata:  # Poetry 0.x format
         hashes = ["sha256:" + h for h in metadata["hashes"]]
+    elif metadata["lock-version"] in ["2.0"]:
+        hashes = {}
+        for package in lockfile["package"]:
+            key = package["name"]
+            hashes[key] = [pack["hash"] for pack in package["files"]]
     else:
         fail("Did not find file hashes in poetry.lock file")
 
