@@ -5,6 +5,15 @@
 # See https://github.com/python-poetry/poetry/blob/d2fd581c9a856a5c4e60a25acb95d06d2a963cf2/poetry/puzzle/provider.py#L55
 # and https://github.com/python-poetry/poetry/issues/1584
 POETRY_UNSAFE_PACKAGES = ["setuptools", "distribute", "pip", "wheel"]
+SUPPORTED_PLATFORMS = [
+    'linux!s390x',
+    'linux!ppc64le',
+    'linux!aarch64',
+    'linux!x86_64',
+    'macos!aarch64',
+    'macos!x86_64',
+    'windows!x86_64'
+]
 
 def _clean_name(name):
     return name.lower().replace("-", "_").replace(".", "_")
@@ -79,7 +88,30 @@ def _mapping(repository_ctx):
     return {
         "dependencies": dependencies,
         "groups": groups,
+        "pyproject": pyproject
     }
+
+def extract_markers(repository_ctx, resolved_markers, dep, markers):
+    python_interpreter = _resolve_python_interpreter(repository_ctx)
+
+    if str(type(markers)) == 'list':
+        if dep not in resolved_markers:
+            resolved_markers[dep] = {}
+        for marker in markers:
+            for platform in SUPPORTED_PLATFORMS:
+                system, machine = platform.split('!')
+                test_string = marker['markers'].replace('platform_machine', "'" + machine + "'")
+                test_string = test_string.replace('sys_platform', "'" + system + "'")
+                cmd = [
+                    python_interpreter,
+                    '-c',
+                    'print(' + test_string + ')'
+                ]
+                result = repository_ctx.execute(cmd)
+                if result.stdout.strip() == "True":
+                    if marker['version'] not in resolved_markers[dep]:
+                        resolved_markers[dep][marker['version']] = []
+                    resolved_markers[dep][marker['version']].append(platform)
 
 def _impl(repository_ctx):
     python_interpreter = _resolve_python_interpreter(repository_ctx)
@@ -115,6 +147,13 @@ def _impl(repository_ctx):
         }
     elif "hashes" in metadata:  # Poetry 0.x format
         hashes = ["sha256:" + h for h in metadata["hashes"]]
+    elif metadata["lock-version"] in ["2.0"]:
+        hashes = {}
+        for package in lockfile["package"]:
+            key = package["name"]
+            if key not in hashes:
+                hashes[key] = []
+            hashes[key] += [pack["hash"] for pack in package["files"]]
     else:
         fail("Did not find file hashes in poetry.lock file")
 
@@ -124,7 +163,23 @@ def _impl(repository_ctx):
         if requested.lower() in excludes:
             fail("pyproject.toml dependency {} is also in the excludes list".format(requested))
 
+    toml_markers = {}
+
+    if metadata["lock-version"] in ["2.0"]:
+        poetry_deps = mapping['pyproject']['tool']['poetry']
+        
+        for dep in poetry_deps['dependencies']:
+            extract_markers(repository_ctx, toml_markers, dep, poetry_deps['dependencies'][dep])
+                    
+        if 'group' in poetry_deps:
+            for group in poetry_deps['group']:
+                if 'dependencies' in poetry_deps['group'][group]:
+                    for dep in poetry_deps['group'][group]['dependencies']:
+                        extract_markers(repository_ctx, toml_markers, dep, poetry_deps['group'][group]['dependencies'][dep])
+
+                
     packages = []
+    package_names = []
     for package in lockfile["package"]:
         name = package["name"]
 
@@ -136,10 +191,23 @@ def _impl(repository_ctx):
             print("Skipping " + name)
             continue
 
+        if _clean_name(name) in package_names:
+            continue
+        
+        version_select = '"' + package['version'] + '"'
+        if name in toml_markers:
+            version_select = "select({\n"
+            for version in toml_markers[name]:
+                for platform in toml_markers[name][version]:
+                    system, machine = platform.split('!')
+                    version_select += "        ':{system}!{machine}':'{version}',\n".format(system=system, machine=machine, version=version)
+            version_select += '    })'
+
+        package_names.append(_clean_name(name))
         packages.append(struct(
             name = _clean_name(name),
             pkg = name,
-            version = package["version"],
+            version = version_select,
             hashes = hashes[name],
             marker = package.get("marker", None),
             source_url = package.get("source", {}).get("url", None),
@@ -182,7 +250,7 @@ def dependency(name, group = None):
 download_wheel(
     name = "wheel_{name}",
     pkg = "{pkg}",
-    version = "{version}",
+    version = {version},
     hashes = {hashes},
     marker = "{marker}",
     source_url = "{source_url}",
@@ -210,7 +278,17 @@ py_library(
 load("//:defs.bzl", "download_wheel")
 load("//:defs.bzl", "noop")
 load("//:defs.bzl", "pip_install")
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
 """
+    for platform in SUPPORTED_PLATFORMS:
+        system, machine = platform.split('!')
+        build_content += """
+selects.config_setting_group(
+    name = "{platform}",
+    match_all = ["@platforms//os:{system}", "@platforms//cpu:{machine}"],
+)
+""".format(platform=platform, system=system, machine=machine)
 
     install_tags = ["\"{}\"".format(tag) for tag in repository_ctx.attr.tags]
     download_tags = install_tags + ["\"requires-network\""]
